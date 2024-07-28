@@ -5,6 +5,7 @@ import os
 import numpy as np
 import copy
 import random
+import json
 
 StandRatio=2
 
@@ -277,7 +278,7 @@ def apply_blur_to_polygon(image, points, blur_strength=(21, 21)):
 
 class Generator:
     def __init__(self,img_dir,output_dir) -> None:
-        filename_list=os.listdir(img_dir)[100:104]
+        filename_list=os.listdir(img_dir)[0:]
         self.path_list=[os.path.join(img_dir,x) for x in filename_list]
         # self.img_list=[read_img(x) for x in self.path_list]
         self.output_dir=output_dir
@@ -311,13 +312,21 @@ class Generator:
         return fake_image,mask,meta_data
         
     def generate_train_data(self,number,output_dir):
+        meta_data_list=[]
         N=len(self.path_list)
         for i in range(number):
+            idx=10000+i
             img_idx=i%N
-            fake_image,mask,meta_data=self.ps_image(img_idx,img_idx)
-            cv2.imwrite(os.path.join(output_dir,"{}.jpg".format(10000+i)), fake_image)
-            cv2.imwrite(os.path.join(output_dir,"{}_label.jpg".format(10000+i)), mask)
-
+            try:
+                fake_image,mask,meta_data=self.ps_image(img_idx,img_idx)
+            except Exception as e:
+                continue
+            cv2.imwrite(os.path.join(output_dir,"{}.jpg".format(idx)), fake_image)
+            cv2.imwrite(os.path.join(output_dir,"{}_label.jpg".format(idx)), mask)
+            meta_data["idx"]=idx
+            meta_data_list.append(meta_data)
+        with open(os.path.join(output_dir,"trian.json"), 'w', encoding="utf-8") as f:
+            json.dump(meta_data_list, f, indent=4, ensure_ascii=False)
             
 
     def process(self,img_path):
@@ -358,7 +367,7 @@ if __name__=="__main__":
     print(generator.path_list)
     fake_image,mask,meta_data=generator.ps_image(3,3)
     print(meta_data)
-    generator.generate_train_data(200,train_data_dir)
+    generator.generate_train_data(1000,train_data_dir)
 
     # img=read_img(generator.path_list[10])
     # print(img.shape)
